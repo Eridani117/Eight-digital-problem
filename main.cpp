@@ -3,25 +3,95 @@
 using namespace std;
 
 vector<string> blankMovedPosition(int blank_position, const string &position);
-
 pair<string, string> getPosition();
-
 pair<int, int> getInversions(string beginPosition, string endPosition);
-
 void BFS(const pair<string, string> &position);
-void aStar(const pair<string, string> &position);
+void aStar_diff(const pair<string, string> &position);
+
 int main() {
 
   pair<string, string> position = getPosition();
   BFS(position);
-  aStar(position);
+  aStar_diff(position);
   return 0;
 }
+
+string CMP_POSITION;
+map<string, pair<int, int>> a_star_map;
+struct cmp {
+
+  bool operator()(string a, string b) {
+    int dif_a = 0;
+    for (int i = 0; i < a.length(); i++) {
+      if (a[i] != CMP_POSITION[i]) {
+        dif_a++;
+      }
+    }
+    int dif_b = 0;
+    for (int i = 0; i < b.length(); i++) {
+      if (b[i] != CMP_POSITION[i]) {
+        dif_b++;
+      }
+    }
+
+    int g_a = a_star_map[a].second;
+    int g_b = a_star_map[b].second;
+    if (g_a + dif_a > g_b + dif_b) {
+      return true;
+    } else {
+      return false;
+    }
+
+  }
+};
+
 ///
 /// \param position
-void aStar(const pair<string, string> &position) {
-  //todo aStar
+void aStar_diff(const pair<string, string> &position) {
+  string beginPosition = position.first, endPosition = position.second;
+  CMP_POSITION = endPosition;
+  priority_queue<string, vector<string>, cmp> queue;
+  int num = 1;
+  int depth = 1;
+  a_star_map[beginPosition] = {num, depth};
+  string cur = beginPosition;
+  vector<string> retMove;
+
+  queue.push(beginPosition);
+  bool solved = false;
+  while (!solved) {
+//    if (queue.size() % 100 == 0) {
+//      cout << queue.size() << endl;
+//    }
+    if (queue.empty()) {
+//      cout << a_star_map[endPosition].first << " " << a_star_map[endPosition].second << endl;
+      cout << "No solution" << endl;
+    }
+    cur = queue.top();
+    depth = a_star_map[cur].second;
+//    cout << depth << endl;
+    queue.pop();
+
+    for (int i = 0; i < cur.length(); i++) {
+      if (cur[i] == '0') {
+        retMove = blankMovedPosition(i, cur);
+        break;
+      }
+    }
+    for (const auto &it:retMove) {
+      if (a_star_map.count(it) == 0) {
+        a_star_map[it] = {++num, depth + 1};
+        queue.push(it);
+      }
+    }
+    if (count(retMove.begin(), retMove.end(), endPosition)) {
+      solved = true;
+    }
+  }
+
+  cout << "count:" << a_star_map[cur].first << endl << "depth:" << a_star_map[cur].second << endl;
 }
+
 ///
 /// \param position
 void BFS(const pair<string, string> &position) {
@@ -43,7 +113,7 @@ void BFS(const pair<string, string> &position) {
 //    }
     if (queue.empty()) {
       cout << map[endPosition].first << " " << map[endPosition].second << endl;
-      cout << "No solution";
+      cout << "No solution" << endl;
     }
     cur = queue.front();
     depth = map[cur].second;
@@ -116,10 +186,12 @@ pair<string, string> getPosition() {
 
   return {beginPosition, endPosition};
 }
+
 ///
 /// \param beginPosition
 /// \param endPosition
 /// \return Inversions 逆序数
+
 pair<int, int> getInversions(string beginPosition, string endPosition) {
   int beginInversions = 0, endInversions = 0;
 
@@ -137,6 +209,7 @@ pair<int, int> getInversions(string beginPosition, string endPosition) {
   }
   return {beginInversions, endInversions};
 }
+
 ///
 /// \param blank_position
 /// \param position
