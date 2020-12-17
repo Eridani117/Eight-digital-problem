@@ -2,22 +2,65 @@
 
 using namespace std;
 
+struct positions {
+  string begin_position;
+  string end_position;
+};
+struct info{
+  int num;
+  int depth;
+  string father;
+};
 vector<string> blankMovedPosition(int blank_position, const string &position);
-pair<string, string> getPosition();
+positions getPositions();
 pair<int, int> getInversions(string beginPosition, string endPosition);
-void BFS(const pair<string, string> &position);
-void aStar_diff(const pair<string, string> &position);
+void BFS(const positions &positions);
+void aStar_diff(const positions &positions);
+void showPosition(string position);
+void showPath(string &end_position, map<string, info> &map);
+map<string, info> BFS_map;
+map<string, info> a_star_map;
 
+int BFS_NUM;
+int BFS_DEPTH;
+int A_STAR_NUM;
+int A_STAR_DEPTH;
 int main() {
 
-  pair<string, string> position = getPosition();
-  BFS(position);
-  aStar_diff(position);
+  positions positions = getPositions();
+  BFS(positions);
+  aStar_diff(positions);
+
+  cout << "\nBFS PATH:================================\n" << endl;
+  showPath(positions.end_position, BFS_map);
+  cout << "\na_star_diff PATH:================================\n" << endl;
+  showPath(positions.end_position, a_star_map);
+
+
+  cout << "BFS_num:" << BFS_NUM << endl << "BFS_depth:" << BFS_DEPTH << endl;
+  cout << "A_STAR_num:" << A_STAR_NUM << endl << "A_STAR_depth:" << A_STAR_DEPTH << endl;
   return 0;
 }
 
+void showPath(string &end_position, map<string, info> &map) {
+
+  string cur = end_position;
+  vector<string> path;
+  while (cur != "END") {
+    path.push_back(cur);
+    cur = map[cur].father;
+  }
+
+  for (int i = (int) path.size() - 1; i >= 0; i--) {
+    cout << "num:" << map[path[i]].num   << "  depth:" << map[path[i]].depth << endl;
+    showPosition(path[i]);
+    cout << endl;
+  }
+
+}
+
 string CMP_POSITION;
-map<string, pair<int, int>> a_star_map;
+
 struct cmp {
 
   bool operator()(string a, string b) {
@@ -34,8 +77,8 @@ struct cmp {
       }
     }
 
-    int g_a = a_star_map[a].second;
-    int g_b = a_star_map[b].second;
+    int g_a = a_star_map[a].depth;
+    int g_b = a_star_map[b].depth;
     if (g_a + dif_a > g_b + dif_b) {
       return true;
     } else {
@@ -46,29 +89,25 @@ struct cmp {
 };
 
 ///
-/// \param position
-void aStar_diff(const pair<string, string> &position) {
-  string beginPosition = position.first, endPosition = position.second;
+/// \param positions
+void aStar_diff(const positions &positions) {
+  string beginPosition = positions.begin_position, endPosition = positions.end_position;
   CMP_POSITION = endPosition;
   priority_queue<string, vector<string>, cmp> queue;
   int num = 1;
   int depth = 1;
-  a_star_map[beginPosition] = {num, depth};
+  a_star_map[beginPosition] = {num, depth, "END"};
   string cur = beginPosition;
   vector<string> retMove;
 
   queue.push(beginPosition);
   bool solved = false;
   while (!solved) {
-//    if (queue.size() % 100 == 0) {
-//      cout << queue.size() << endl;
-//    }
     if (queue.empty()) {
-//      cout << a_star_map[endPosition].first << " " << a_star_map[endPosition].second << endl;
       cout << "No solution" << endl;
     }
     cur = queue.top();
-    depth = a_star_map[cur].second;
+    depth = a_star_map[cur].depth;
 //    cout << depth << endl;
     queue.pop();
 
@@ -80,7 +119,7 @@ void aStar_diff(const pair<string, string> &position) {
     }
     for (const auto &it:retMove) {
       if (a_star_map.count(it) == 0) {
-        a_star_map[it] = {++num, depth + 1};
+        a_star_map[it] = {++num, depth + 1, cur};
         queue.push(it);
       }
     }
@@ -88,20 +127,21 @@ void aStar_diff(const pair<string, string> &position) {
       solved = true;
     }
   }
-
-  cout << "count:" << a_star_map[cur].first << endl << "depth:" << a_star_map[cur].second << endl;
+  A_STAR_NUM = a_star_map[cur].num;
+  A_STAR_DEPTH = a_star_map[cur].depth;
+  cout << "num:" << A_STAR_NUM << endl << "depth:" << A_STAR_DEPTH << endl;
 }
 
 ///
-/// \param position
-void BFS(const pair<string, string> &position) {
+/// \param positions
+void BFS(const positions &positions) {
 
-  string beginPosition = position.first, endPosition = position.second;
+  string beginPosition = positions.begin_position, endPosition = positions.end_position;
   queue<string> queue;
   int num = 1;
   int depth = 1;
-  map<string, pair<int, int>> map;
-  map[beginPosition] = {num, depth};
+
+  BFS_map[beginPosition] = {num, depth, "END"};
   string cur = beginPosition;
   vector<string> retMove;
 
@@ -112,11 +152,11 @@ void BFS(const pair<string, string> &position) {
 //      cout << queue.size() << endl;
 //    }
     if (queue.empty()) {
-      cout << map[endPosition].first << " " << map[endPosition].second << endl;
+      cout << BFS_map[endPosition].num << " " << BFS_map[endPosition].depth << endl;
       cout << "No solution" << endl;
     }
     cur = queue.front();
-    depth = map[cur].second;
+    depth = BFS_map[cur].depth;
 //    cout << depth << endl;
     queue.pop();
 
@@ -127,8 +167,8 @@ void BFS(const pair<string, string> &position) {
       }
     }
     for (const auto &it:retMove) {
-      if (map.count(it) == 0) {
-        map[it] = {++num, depth + 1};
+      if (BFS_map.count(it) == 0) {
+        BFS_map[it] = {++num, depth + 1, cur};
         queue.push(it);
       }
     }
@@ -136,14 +176,15 @@ void BFS(const pair<string, string> &position) {
       solved = true;
     }
   }
-
-  cout << "count:" << map[cur].first << endl << "depth:" << map[cur].second << endl;
+  BFS_NUM = BFS_map[cur].num;
+  BFS_DEPTH = BFS_map[cur].depth;
+  cout << "count:" << BFS_NUM << endl << "depth:" << BFS_DEPTH << endl;
 
 }
 
 ///
 /// \return position
-pair<string, string> getPosition() {
+positions getPositions() {
   string beginPosition, endPosition;
   bool getResolvedPosition = false;
 
@@ -176,22 +217,23 @@ pair<string, string> getPosition() {
   }
 
   cout << "beginPosition:" << endl;
-  cout << beginPosition[0] << " " << beginPosition[1] << " " << beginPosition[2] << endl;
-  cout << beginPosition[3] << " " << beginPosition[4] << " " << beginPosition[5] << endl;
-  cout << beginPosition[6] << " " << beginPosition[7] << " " << beginPosition[8] << endl;
+  showPosition(beginPosition);
   cout << "endPosition" << endl;
-  cout << endPosition[0] << " " << endPosition[1] << " " << endPosition[2] << endl;
-  cout << endPosition[3] << " " << endPosition[4] << " " << endPosition[5] << endl;
-  cout << endPosition[6] << " " << endPosition[7] << " " << endPosition[8] << endl;
+  showPosition(endPosition);
 
   return {beginPosition, endPosition};
+}
+
+void showPosition(string position) {
+  cout << position[0] << " " << position[1] << " " << position[2] << endl;
+  cout << position[3] << " " << position[4] << " " << position[5] << endl;
+  cout << position[6] << " " << position[7] << " " << position[8] << endl;
 }
 
 ///
 /// \param beginPosition
 /// \param endPosition
 /// \return Inversions 逆序数
-
 pair<int, int> getInversions(string beginPosition, string endPosition) {
   int beginInversions = 0, endInversions = 0;
 
